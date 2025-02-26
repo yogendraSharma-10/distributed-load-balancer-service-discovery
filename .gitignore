@@ -1,0 +1,69 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.a
+
+# Test binary, generated with `go test -c`
+*.test
+
+# Output of the go tool, specifically from `go build -o`
+*.out
+
+# Dependency directories (remove the comment if you wish to ignore them)
+# vendor/
+
+# Go module cache
+# This is usually located in GOPATH/pkg/mod and should not be in the project's .gitignore.
+# If you have a local module cache within the project, you might add it here.
+
+# IDE and editor specific files
+.idea/                  # JetBrains IDEs (GoLand, IntelliJ IDEA)
+.vscode/                # VS Code
+.DS_Store               # macOS
+Thumbs.db               # Windows
+ehthumbs.db             # Windows
+Desktop.ini             # Windows
+*.swp                   # Vim swap files
+*.swo                   # Vim swap files
+
+# Node.js / React / TypeScript specific ignores (frontend/)
+frontend/node_modules/
+frontend/dist/          # Build output directory for frontend
+frontend/build/         # Another common build output directory for React
+frontend/coverage/      # Test coverage reports
+frontend/.env           # Environment variables
+frontend/.env.*
+frontend/.parcel-cache/ # Parcel bundler cache
+frontend/.next/         # Next.js build output (if used)
+frontend/.cache/        # General cache directory
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Logs
+*.log
+log/
+logs/
+
+# Configuration files that might contain sensitive information or local overrides
+# While balancer.yaml is versioned, local overrides might not be.
+# Example: If you have a local override for balancer.yaml
+# config/balancer.local.yaml
+
+# Docker specific ignores
+# Docker build context often includes .dockerignore, but this is for the repo itself.
+# Ignore any generated Docker artifacts or temporary files.
+# For example, if you build images locally and want to ignore them.
+# *.tar # Docker save output
+
+# Miscellaneous
+*.pem                   # Private key files (if generated locally and not meant for repo)
+*.key                   # Key files (if generated locally and not meant for repo)
+*.crt                   # Certificate files (if generated locally and not meant for repo)
+*.bak                   # Backup files
+*.tmp                   # Temporary files

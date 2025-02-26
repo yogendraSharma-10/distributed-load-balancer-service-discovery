@@ -1,0 +1,74 @@
+```yaml
+# config/balancer.yaml
+#
+# Configuration file for the Distributed Load Balancer & Service Discovery system.
+# This file defines global settings for the load balancer, service discovery,
+# health checks, and routing rules for various backend services, including
+# those from the interconnected microservice ecosystem.
+
+# Global Load Balancer Server Settings
+server:
+  port: 8080 # The port on which the load balancer will listen for incoming HTTP/HTTPS requests.
+  readTimeout: 5s # Maximum duration for reading the entire request, including the body.
+  writeTimeout: 10s # Maximum duration before timing out writes of the response.
+  idleTimeout: 15s # Maximum amount of time to wait for the next request when keep-alives are enabled.
+  # These timeouts help prevent resource exhaustion and improve resilience against slow clients.
+
+# Service Discovery Configuration
+# This section defines how the load balancer discovers available backend service instances.
+discovery:
+  type: "in-memory" # Type of service discovery mechanism.
+  # Options: "in-memory" (for simple local testing), "etcd", "consul".
+  # For production, a distributed key-value store like etcd or Consul is recommended.
+
+  # Example configuration for etcd-based discovery (uncomment and configure for use):
+  # etcd:
+  #   endpoints: ["http://localhost:2379", "http://etcd-1:2379"] # List of etcd server endpoints.
+  #   dialTimeout: 5s # Timeout for establishing a connection to etcd.
+  #   prefix: "/services/" # The base path in etcd where service registrations are stored.
+
+  # Example configuration for Consul-based discovery (uncomment and configure for use):
+  # consul:
+  #   address: "localhost:8500" # Address of the Consul agent or server.
+  #   scheme: "http" # Scheme for connecting to Consul (http or https).
+  #   dataCenter: "dc1" # Optional: Consul datacenter to query.
+
+  heartbeatInterval: 10s # How often registered services should send heartbeats to the discovery registry.
+  # This ensures the registry knows services are still alive and updates their status.
+
+# Default Load Balancing Strategy
+# This strategy is applied to services unless overridden by a service-specific configuration
+# in the 'routes' section.
+strategy: "round-robin" # Options: "round-robin", "least-connections", "ip-hash", "weighted-round-robin".
+# - round-robin: Distributes requests sequentially to each server in the group.
+# - least-connections: Sends new requests to the server with the fewest active connections.
+# - ip-hash: Routes requests from the same client IP to the same backend server.
+# - weighted-round-robin: Distributes requests based on predefined weights for each server.
+
+# Health Check Settings for Backend Services
+# These settings define how the load balancer periodically verifies the health and availability
+# of its backend service instances.
+healthCheck:
+  interval: 5s # How often to perform health checks on each backend service instance.
+  timeout: 3s # Timeout for a single health check request. If a check takes longer, it's considered failed.
+  unhealthyThreshold: 3 # Number of consecutive failed checks before marking a service instance as unhealthy.
+  healthyThreshold: 2 # Number of consecutive successful checks before marking an unhealthy service instance as healthy again.
+  path: "/health" # Default health check endpoint path for services (e.g., http://service-ip:port/health).
+  # Services are expected to expose a simple HTTP endpoint that returns 200 OK if healthy.
+
+# Backend Service Definitions and Routing Rules
+# This section defines how incoming requests are routed to different backend services
+# based on their path prefixes. It also allows for service-specific configurations
+# that override global defaults (e.g., specific load balancing strategy or health check path).
+# Routes are processed in the order they appear; more specific paths should come first.
+routes:
+  # Route for the E-commerce Platform
+  - pathPrefix: "/ecommerce" # Requests starting with /ecommerce will be routed to this service.
+    serviceName: "ecommerce-platform" # The logical name of the service group to discover.
+    # targetPort: 8081 # Optional: A default port if service discovery only provides hostnames, or for local testing.
+    strategy: "least-connections" # Override global strategy for this specific service.
+    healthCheckPath: "/api/health" # Service-specific health check path.
+    # Additional metadata or configuration specific to this service can be added here,
+    # e.g., specific timeouts, retry policies, or authentication requirements.
+
+  # Route for the Microservices
