@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # Load Balancer Service (Go Backend)
+  loadbalancer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080" # Main load balancer port
+      - "8081:8081" # Health check/admin API port (optional, but good practice)
+    volumes:
+      - ./config:/app/config # Mount config for dynamic updates without rebuilding
+    environment:
+      # Environment variables for the Go application
+      LB_PORT: "8080"
+      LB_ADMIN_PORT: "8081"
+      LB_CONFIG_PATH: "/app/config/balancer.yaml"
+      # Reference to other services for dynamic discovery or configuration
+      # Example: If the load balancer needs to know about a central config service
+      # CONFIG_SERVICE_URL: "http://config-service:8080"
+      # For service discovery, we might point to a dedicated discovery service or use Docker's internal DNS
+      # DISCOVERY_SERVICE_URL: "http://discovery-service:8500" # e.g., Consul
+    depends_on:
+      - redis # For service registry persistence or session management
+    networks:
+      - lb_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"] # Assuming an admin/health endpoint
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Frontend Service (React/TypeScript)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000" # Frontend application port
+    environment:
+      # Point the frontend to the load balancer's public port
+      REACT_APP_API_BASE_URL: "http://localhost:8080" # When running locally
+      # In a production setup, this would be the public domain/IP of the load balancer
+      # REACT_APP_API_BASE_URL: "http://loadbalancer:8080" # For internal Docker communication
+      # Example: If frontend needs to interact with other services directly (e.g., for specific UIs)
+      # REACT_APP_ANALYTICS_DASHBOARD_URL: "http://analytics-dashboard:3001"
+    depends_on:
+      - loadbalancer
+    networks:
+      - lb_network
+
+  # Redis for Service Registry / Caching / Session Management
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data # Persist Redis data
+    networks:
+      - lb_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Example Backend Service 1 (e.g., E-commerce Product Service)
+  backend-service-1:
+    build:
+      context: ./backend-services/ecommerce-products # Assuming a separate directory for backend services
+      dockerfile: Dockerfile # Or use a pre-built image
+    ports:
+      - "8001:8000" # Expose for direct access/testing, but load balancer will route
+    environment:
+      SERVICE_NAME: "ecommerce-products"
+      SERVICE_PORT: "8000"
+      # Point to the load balancer's discovery endpoint to register itself
+      # Or, if using a dedicated discovery service like Consul/Eureka
+      # DISCOVERY_REGISTRY_URL: "http://loadbalancer:8081/register" # Assuming LB has a registration endpoint
+      # Or, if using a dedicated discovery service
+      # DISCOVERY_REGISTRY_URL: "http://discovery-service:8500"
+    networks:
+      - lb_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Example Backend Service 2 (e.g., Blog Post Service)
+  backend-service-2:
+    build:
+      context: ./backend-services/blog-posts # Another example backend service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      SERVICE_NAME: "blog-posts"
+      SERVICE_PORT: "8000"
+      # DISCOVERY_REGISTRY_URL: "http://loadbalancer:8081/register"
+    networks:
+      - lb_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Example Backend Service 3 (e.g., Analytics Data Ingestion)
+  backend-service-3:
+    build:
+      context: ./backend-services/analytics-ingestion # Another example backend service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    environment:
+      SERVICE_NAME: "analytics-ingestion"
+      SERVICE_PORT: "8000"
+      # DISCOVERY_REGISTRY_URL: "http://loadbalancer:8081/register"
+    networks:
+      - lb_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  lb_network:
+    driver: bridge
+
+volumes:
+  redis_data: # Volume for Redis persistence
